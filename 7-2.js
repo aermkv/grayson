@@ -517,9 +517,10 @@ function blurredEllipse(x,y,size,r,g,b,a) {
 }
 
 function blurredEllipse_Sp(x,y,size,r,g,b,a) {
-  for (let i = 0; i < 12; i++){//change to i < 5
-    bg1.fill(r,g,b,(i/a)*(1.5*i)) // change to a*i ----> then also lower size and opacity in assembly function to increase layer transparency
-    bg1.ellipse(x,y,1.6*size - (size/10)*i)
+  for (let i = 0; i < 5; i++){//change to i < 5
+    let coeff = map(dist(x,y,0,0),0,bg1_w(.65),1,0) // new, more effective light to dark transition
+    bg1.fill(r*coeff,g*coeff,b*coeff,a*(i)) // change to a*i ----> then also lower size and opacity in assembly function to increase layer transparency
+    bg1.ellipse(x,y,size - (size/6)*i)
   }
 }
 
@@ -554,18 +555,18 @@ function drawCirc_Vert_SOLIDS(radius, t_offset, limit, r, g, b, a, grid) {
   let x = radius * rad_mult * 1.25 * cos(speed_coeff*t+t_offset) + map(sin(t),-1,1,-bg1_w(.03),bg1_w(.03))
   let y = radius * rad_mult * 1.25 * sin(speed_coeff*t+t_offset) + rnd(-bg1_w(.005),bg1_w(.005))
   if (grid == 'arcGrid' || grid == 'arcLayers') {
-    x = radius * rad_mult * 2.45 * cos(speed_coeff*t+t_offset) + map(sin(t),-1,1,-bg1_w(.03),bg1_w(.03))
-    y = ((radius + bg1_w(.02)) * rad_mult * 2.8 * sin(speed_coeff*t+t_offset) + rnd(-bg1_w(.005),bg1_w(.005))) * 1.5 + bg1_h(.2)
+    x = radius * rad_mult * 2.45 * cos(speed_coeff*t+t_offset) + map(sin(t),-1,1,-bg1_w(.03),bg1_w(.03)) * distort
+    y = ((radius + bg1_w(.02)) * rad_mult * 2.8 * sin(speed_coeff*t+t_offset) + rnd(-bg1_w(.005),bg1_w(.005))) * 1.5 + bg1_h(.2) * distort
   }
   if (grid == 'shaftGrid') {
     y = (radius * rad_mult * sin(speed_coeff*t+t_offset) + rnd(-bg1_w(.005),bg1_w(.005))) * 3.5 //+ bg1_h(.35)
   }
-  let size = map(sin(t+180),-1,1,bg1_w(.04),bg1_w(.1)) + map(dist(x,y,width/2,height/2),0,bg1_w(1),0,bg1_w(.03))
+  let size = map(sin(t+180),-1,1,bg1_w(.01),bg1_w(.04)) + map(dist(x,y,width/2,height/2),0,bg1_w(1),0,bg1_w(.03))
 
   //if (frameCount < limit) {
-    //let coeff = map(dist(x,y,bg1.width/2,bg1.height/2),0,w(.9),1,.3)
-    let alpha_coeff = map(dist(x,y,bg1.width/2,bg1.height/2),0,bg1_w(1),1,2)
-    blurredEllipse_Sp(x,y,size, r, g, b, a*alpha_coeff)
+    let coeff = map(radius,0,w(.25),1.8,.1)
+    let alpha_coeff = map(dist(x,y,0,0),0,bg1_w(.65),1,.2)
+    blurredEllipse_Sp(x,y,size, r*coeff, g*coeff, b*coeff, a*alpha_coeff)
     xoff += 0.05
   //}
   pop()
@@ -581,16 +582,16 @@ function drawSpirals_SOLIDS(r, g, b, a, grid) {
       if (grid == 'arcGrid' || grid == 'arcLayers') {
         rad = bg1_w(.015)+i*bg1_w(.025)
       }
-      let coeff = map(rad,0,bg1_w(.005)+num_circs*bg1_w(.03),1,0)
-      drawCirc_Vert_SOLIDS(rad, 60*i, begin + 180 + 3*i, r*coeff, g*coeff, b*coeff, a + .5*i, grid)
+      //let coeff = map(rad,0,bg1_w(.005)+num_circs*bg1_w(.03),1,0)
+      drawCirc_Vert_SOLIDS(rad, 60*i, begin + 180 + 3*i, r, g, b, a + .5*i, grid)
     }
   }
   pop()
 }
 
 function bigBrushTexture(grid) {
-  if (frameCount < 500) {
-    drawSpirals_SOLIDS(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2], 11, grid)
+  if (frameCount < 600) {
+    drawSpirals_SOLIDS(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2], 3, grid)
     //drawSpirals_SOLIDS_OUTSIDE(pal.dark[0], pal.dark[1], pal.dark[2], 3)
   }
 }
