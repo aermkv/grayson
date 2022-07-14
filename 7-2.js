@@ -1,4 +1,6 @@
-tokenData.hash = '0x95ed83b248cad08ea0a8aa90f4b986a8e7df31beb69b84c08630675f32377a73'
+//tokenData.hash = '0xd5fdfe7a02da3596aedd472fde03dcf62b322a36f96d8e6e3221d08281d99596'
+
+// 0x84c4a0e3fe324b72b3daff68977619a555460e130a5155e773f01e2b5fbff083 a real pretty hash - for sneak peeks?
 p5.disableFriendlyErrors = true
 const hashPairs = [];
 for (let j = 0; j < 32; j++) {
@@ -67,22 +69,22 @@ const palettes = {
     accent_dark: [44, 77, 60]
   },
   yellow: {
-    light: [252, 186, 3],
-    dark: [255, 240, 199],
-    accent_light: [255, 252, 82],
-    accent_dark: [181, 130, 27]
+    light: [206, 119, 81],
+    dark: [81, 70, 46],
+    accent_light: [221, 154, 5],
+    accent_dark: [25, 15, 0]
   },
   matisse: {
-    light: [199, 221, 237],
-    dark: [177, 151, 204],
-    accent_light: [250, 187, 217],
+    light: [42, 151, 237],
+    dark: [150, 83, 123],
+    accent_light: [250, 107, 148],
     accent_dark: [222, 82, 67]
   },
   pinks: {
-    light: [255, 231, 191],
-    dark: [255,134,158],
-    accent_light: [255,196,196],
-    accent_dark: [161,0,53]
+    light: [249, 114, 122],
+    dark: [191,44,73],
+    accent_light: [252,149,149],
+    accent_dark: [120,0,53]
   },
   sunset: {
     light: [255,204,143],
@@ -97,10 +99,10 @@ const palettes = {
     accent_dark: [42, 37, 80]
   },
   candy: {
-    light: [255, 227, 169],
-    dark: [255, 140, 140],
-    accent_light: [255, 195, 195],
-    accent_dark: [255, 93, 93]
+    light: [255, 184, 128],
+    dark: [255, 77, 129],
+    accent_light: [229, 148, 173],
+    accent_dark: [154, 2, 56]
   }
 }
 
@@ -140,6 +142,7 @@ let cCoeff;
 let bg1;
 let graphics;
 let rings;
+let flag;
 
 // FOR fracturedSun & wallOfFire
 const slices = 180;
@@ -177,6 +180,11 @@ let numPoints;
 
 let cresMetal;
 
+//FLAG
+
+let drips = [];
+let numDrips;
+
 
 function setup() {
   noiseSeed(seed)
@@ -186,12 +194,36 @@ function setup() {
   time = 0
 
   pal = choosePalette()
+  //pal = palettes.pinks;
+  palName = choosePalName()
+  console.log(palName)
+
+  bgEffect = chooseBackgroundEffect()
+  //bgEffect = cross
+  console.log(bgEffect)
 
   setWater()
 
   bg1 = createGraphics(smD/5,smD/5)
 
   bg1.translate(bg1.width/2,bg1.height/2)
+
+  if (bgEffect === staticFlag) {
+    flag = createGraphics(smD,smD)
+
+    flag.translate(flag.width/2,flag.height/2)
+  
+    staticFlag()
+
+    flagDrips()
+  }
+
+  if (bgEffect === cross) {
+    flag = createGraphics(smD,smD)
+
+    flag.translate(flag.width/2,flag.height/2)
+    cross()
+  }
 
   setFracturedSun()
   setMovingBackground()
@@ -207,8 +239,6 @@ function setup() {
   gridType = chooseGrid()
   console.log(gridType)
 
-  bgEffect = chooseBackgroundEffect()
-  console.log(bgEffect)
 
   exType = chooseExpandType()
   console.log(exType)
@@ -227,22 +257,31 @@ function setup() {
     mothsSetup(gridType)
   }
 
-
+  //noLoop()
 }
 
 function draw() {
   translate(width/2,height/2)
   imageMode(CENTER)
-  let cCoeff = map(mouseY,-h(.5),h(.5),.1,.85)
+  let cCoeff = map(sin(frameCount / 120),-1,1,.1,.85)
+  if (mouseIsPressed) {
+    cCoeff = map(mouseY,-h(.5),h(.5),0,1)
+  }
   background(pal.dark[0]*cCoeff, pal.dark[1]*cCoeff, pal.dark[2]*cCoeff, 83)
-  
+  if (bgEffect === staticFlag) {
+    image(flag,0,0,width,height)
+    drawDrips()
+    textureOverFlag()
+  }
+  if (bgEffect === cross) {
+    image(flag,0,0,width,height)
+    flag.background(0,0)
+    textureOverFlag()
+  }
   image(bg1,0,0,width,height)
-  bgEffect(gridType)
-  //bg1.clear()
-  //fracturedSun()
-  //wallOfFire()
-  //bigBrushTexture(gridType)
-  //movingBackground()
+  if (bgEffect != staticFlag) {
+    bgEffect(gridType)
+  }
 
   water()
 
@@ -253,6 +292,8 @@ function draw() {
   rings.clear()
 
   drawIrregCircles()
+
+  //shimmerPixels()
 
   moths.clear()
   if (gridType === 'spirals_in') {
@@ -266,6 +307,8 @@ function draw() {
 
   time += .1
   console.log(frameRate())
+
+  loop()
 }
 
 // CHOOSERS
@@ -296,6 +339,32 @@ function choosePalette() {
     return chosenPal
 }
 
+function choosePalName() {
+  const palPercent = map(decPairs[1],0,255,0,1);
+    if (palPercent < .1) {
+      chosenPal = 'gray'
+    }else if (palPercent < .2){
+      chosenPal = 'orange'
+    }else if (palPercent < .3){
+      chosenPal = 'yellow'
+    }else if (palPercent < .4){
+      chosenPal = 'matisse'
+    }else if (palPercent < .5){
+      chosenPal = 'pinks'
+    }else if (palPercent < .6){
+      chosenPal = 'sunset'
+    }else if (palPercent < .7){
+      chosenPal = 'night'
+    }else if (palPercent < .8){
+      chosenPal = 'candy'
+    }else if (palPercent < .9){
+      chosenPal = 'blue'
+    }else{
+      chosenPal = 'red'
+    }
+    return chosenPal
+}
+
 function chooseGrid() {
   const gridPercent = map(decPairs[3],0,255,0,1);
     if (gridPercent < .15) {
@@ -318,11 +387,15 @@ function chooseGrid() {
 
 function chooseBackgroundEffect() {
   const waterPercent = map(decPairs[8],0,255,0,1);
-    if (waterPercent < .25) {
+    if (waterPercent < .17) {
       chosenEffect = movingBackground
-    }else if (waterPercent < .5) {
+    }else if (waterPercent < .34) {
       chosenEffect = wallOfFire
-    }else if (waterPercent < .75) {
+    }else if (waterPercent < .51) {
+      chosenEffect = staticFlag
+    }else if (waterPercent < .68) {
+      chosenEffect = cross
+    }else if (waterPercent < .84) {
       chosenEffect = bigBrushTexture
     }else{
       chosenEffect = fracturedSun
@@ -372,11 +445,11 @@ function chooseMothScale() {
     if (mothScalePercent < .25) {
       mothScale = rnd(.35,.65)
     }else if (mothScalePercent < .5) {
-      mothScale = rnd(.65,.9)
+      mothScale = rnd(.55,.85)
     }else if (mothScalePercent < .75) {
       mothScale = rnd(.35,1)
     }else{
-      mothScale = rnd(.9,1.15)
+      mothScale = rnd(.8,1)
     }
     return mothScale;
 }
@@ -439,6 +512,124 @@ function daubing() {
   //inwardDaubs(1200, pal.light[0], pal.light[1], pal.light[2], -w(.35), lay)
 }
 
+function stripe(r,g,b,left,right, top, bottom, weight) {
+  for (let i = 0; i < 50; i++) {
+    let y = map(i, 0, 50, top, bottom);
+    let x1 = left
+    let x2 = right
+    tS_original_flag(x1, y, x2, y, weight, r, g, b, 25) 
+  }
+}
+
+function stripe_vert(r,g,b,left,right, top, bottom, weight) {
+  for (let i = 0; i < 50; i++) {
+    let x = map(i, 0, 50, left, right);
+    let y1 = top
+    let y2 = bottom
+    tS_original_flag(x, y1, x, y2, weight, r, g, b, 12) 
+  }
+}
+
+function staticFlag() {
+  push()
+  for (let i = 0; i < 200; i++) {
+    let x = map(i, 0, 200, -w(.5), 0);
+    let y1 = -h(.5)
+    let y2 = 0
+    tS_original_flag(x, y1, x, y2, w(.1), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2], 25) 
+  }
+
+  for (let i = 0; i < 200; i++) {
+    let y = map(i, 0, 200, -h(.5), 0);
+    let x1 = -w(.5)
+    let x2 = 0
+    tS_original_flag(x1, y, x2, y, w(.1), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2], 45) 
+  }
+
+
+  flagDrips(50, -w(.5), 0, -h(.5), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // blue
+  //flagDrips(rnd(15,30), -w(.5), 0, -h(.3), 10,5,50) // blue
+  //flagDrips(rnd(15,30), -w(.5), 0, -h(.1), 10,5,50) // blue
+
+  /*for (let i = 0; i < 12; i++) {
+    let col1 = [120,10,50]
+    let col2 = [180,20,50]
+    if (i % 2 == 0) {
+      col1  = [210,210,210]
+      col2 = [255,250,250]
+    }
+    let top = map(i,0,12,-h(.5),h(.4))
+    let bottom = top + h(.1)
+    if (i < 6){
+      stripe(col1[0], col1[1], col1[2], 0, w(.5), top, bottom, w(.15))
+    }else{
+      stripe(col1[0], col1[1], col1[2], -w(.5), w(.5), top, bottom, w(.15))
+    }
+    if (i < 6){
+      stripe(col2[0], col2[1], col2[2], 0, w(.5), top, bottom, w(.1))
+    }else{
+      stripe(col2[0], col2[1], col2[2], -w(.5), w(.5), top, bottom, w(.1))
+    }
+  }*/
+  /*
+  stripe(210,210,210,-w(.5),w(.5), 0, h(.1), w(.15))
+  stripe(120,10,50,-w(.5),w(.5), h(.1), h(.2), w(.15))
+  stripe(210,210,210,-w(.5),w(.5), h(.2), h(.3), w(.15))
+  stripe(120,10,50,-w(.5),w(.5), h(.3), h(.4), w(.15))
+  stripe(210,210,210,-w(.5),w(.5), h(.4), h(.5), w(.15))*/
+
+  stripe(pal.dark[0], pal.dark[1], pal.dark[2],0,w(.5), -h(.5), -h(.4), w(.1))
+  flagDrips(rnd(10,20), 0, w(.5), -h(.5), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // dark red
+  flagDrips(rnd(2,5), 0, w(.5), -h(.4), pal.dark[0], pal.dark[1], pal.dark[2]) // red
+  stripe(pal.light[0], pal.light[1], pal.light[2],0,w(.5), -h(.4), -h(.3), w(.1))
+  flagDrips(rnd(10,20), 0, w(.5), -h(.4), pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]) // grey
+  flagDrips(rnd(2,5), 0, w(.5), -h(.3), pal.light[0], pal.light[1], pal.light[2]) // white
+  stripe(pal.dark[0], pal.dark[1], pal.dark[2],0,w(.5), -h(.3), -h(.2), w(.1))
+  flagDrips(rnd(10,20), 0, w(.5), -h(.3), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // dark red
+  flagDrips(rnd(2,5), 0, w(.5), -h(.2), pal.dark[0], pal.dark[1], pal.dark[2]) // red
+  stripe(pal.light[0], pal.light[1], pal.light[2],0,w(.5), -h(.2), -h(.1), w(.1))
+  flagDrips(rnd(10,20), 0, w(.5), -h(.2), pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]) // grey
+  flagDrips(rnd(2,5), 0, w(.5), -h(.1), pal.light[0], pal.light[1], pal.light[2]) // white
+  stripe(pal.dark[0], pal.dark[1], pal.dark[2],0,w(.5), -h(.1), 0, w(.1))
+  flagDrips(rnd(10,20), 0, w(.5), -h(.1), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // dark red
+  flagDrips(rnd(2,5), 0, w(.5), 0, pal.dark[0], pal.dark[1], pal.dark[2]) // red
+
+
+  stripe(pal.light[0], pal.light[1], pal.light[2],-w(.5),w(.5), 0, h(.1), w(.1))
+  flagDrips(rnd(10,20), -w(.5), w(.5), 0, pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]) // grey
+  flagDrips(rnd(3,9), -w(.5),w(.5), h(.1), pal.light[0], pal.light[1], pal.light[2]) // white
+  stripe(pal.dark[0], pal.dark[1], pal.dark[2],-w(.5),w(.5), h(.1), h(.2), w(.1))
+  flagDrips(rnd(20,40), -w(.5), w(.5), h(.1), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // dark red
+  flagDrips(rnd(12,15), -w(.5),w(.5), h(.2), pal.dark[0], pal.dark[1], pal.dark[2]) // red
+  stripe(pal.light[0], pal.light[1], pal.light[2],-w(.5),w(.5), h(.2), h(.3), w(.1))
+  flagDrips(rnd(10,20), -w(.5), w(.5), h(.2), pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]) // grey
+  flagDrips(rnd(3,9), -w(.5),w(.5), h(.3), pal.light[0], pal.light[1], pal.light[2]) // white
+  stripe(pal.dark[0], pal.dark[1], pal.dark[2],-w(.5),w(.5), h(.3), h(.4), w(.1))
+  flagDrips(rnd(20,40), -w(.5), w(.5), h(.3), pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2]) // dark red
+  flagDrips(rnd(12,15), -w(.5),w(.5), h(.4), pal.dark[0], pal.dark[1], pal.dark[2]) // red
+  stripe(pal.light[0], pal.light[1], pal.light[2],-w(.5),w(.5), h(.4), h(.5), w(.1))
+  flagDrips(rnd(10,20), -w(.5), w(.5), h(.4), pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]) // grey
+  pop()
+}
+
+function cross() {
+  push()
+  if (frameCount < 1) {
+
+    flag.clear()
+    stripe(pal.light[0], pal.light[1], pal.light[2],-w(.27),w(.27), -h(.38), h(.38), w(.32))
+    stripe(pal.light[0], pal.light[1], pal.light[2],-w(.38),w(.38), -h(.27), h(.27), w(.32))
+    stripe(pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2],-w(.27),w(.27), -h(.38), h(.38), w(.32))
+    stripe(pal.accent_dark[0], pal.accent_dark[1], pal.accent_dark[2],-w(.38),w(.38), -h(.27), h(.27), w(.32))
+    
+    stripe_vert(pal.dark[0], pal.dark[1], pal.dark[2],-w(.27),w(.27), -h(.38), h(.38), w(.32))
+    stripe_vert(pal.dark[0], pal.dark[1], pal.dark[2],-w(.38),w(.38), -h(.27), h(.27), w(.32))
+    stripe_vert(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2],-w(.27),w(.27), -h(.38), h(.38), w(.32))
+    stripe_vert(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2],-w(.38),w(.38), -h(.27), h(.27), w(.32))
+  }
+  pop()
+}
+
 // BG1 FUNCTIONS
 
 function setFracturedSun() {
@@ -449,7 +640,10 @@ function setFracturedSun() {
 
 function fracturedSun() {
   push()
-  let cCoeff = map(mouseY,-h(.5),h(.5),.1,.85)
+  let cCoeff = map(sin(frameCount / 120),-1,1,.1,.85)
+  if (mouseIsPressed) {
+    cCoeff = map(mouseY,-h(.5),h(.5),0,1)
+  }
   bg1.background(pal.dark[0]*cCoeff, pal.dark[1]*cCoeff, pal.dark[2]*cCoeff, 38)
   bg1.noStroke()
   bg1.rotate(radians(1));
@@ -481,7 +675,10 @@ function fracturedSun() {
 
 function wallOfFire() {
   push()
-  let cCoeff = map(mouseY,-h(.5),h(.5),.1,.85)
+  let cCoeff = map(sin(frameCount / 120),-1,1,.1,.85)
+  if (mouseIsPressed) {
+    cCoeff = map(mouseY,-h(.5),h(.5),0,1)
+  }
   bg1.background(pal.dark[0]*cCoeff, pal.dark[1]*cCoeff, pal.dark[2]*cCoeff, 38)
   bg1.noStroke()
   for (let blobNum = 0; blobNum < 7; blobNum++){
@@ -534,7 +731,7 @@ function blurredEllipse_bg1(x,y,size,r,g,b,a) {
 
 function fogEllipse(x,y,size,r,g,b,a) {
   for (let i = 0; i < 4; i++){ // reduced to be lighter 
-    fill(r,g,b,(i/a)*(1.5*i))
+    fill(r,g,b,a*i*.1)
     noStroke()
     ellipse(x,y,1.6*size - (size/3)*i)
   }
@@ -572,7 +769,7 @@ function drawCirc_Vert_SOLIDS(radius, t_offset, limit, r, g, b, a, grid) {
   pop()
 }
 
-function drawSpirals_SOLIDS(r, g, b, a, grid) {
+function drawSpirals_SOLIDS(r, g, b, a, a_inc, grid) {
   push()
   let num_circs = 12
   let begin = 0
@@ -583,7 +780,7 @@ function drawSpirals_SOLIDS(r, g, b, a, grid) {
         rad = bg1_w(.015)+i*bg1_w(.025)
       }
       //let coeff = map(rad,0,bg1_w(.005)+num_circs*bg1_w(.03),1,0)
-      drawCirc_Vert_SOLIDS(rad, 60*i, begin + 180 + 3*i, r, g, b, a + .5*i, grid)
+      drawCirc_Vert_SOLIDS(rad, 60*i, begin + 180 + 3*i, r, g, b, a + a_inc*i, grid)
     }
   }
   pop()
@@ -591,7 +788,7 @@ function drawSpirals_SOLIDS(r, g, b, a, grid) {
 
 function bigBrushTexture(grid) {
   if (frameCount < 600) {
-    drawSpirals_SOLIDS(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2], 3, grid)
+    drawSpirals_SOLIDS(pal.accent_light[0], pal.accent_light[1], pal.accent_light[2], .00000001, .33, grid) // use a = 3 and a_inc = .5 for earlier version
     //drawSpirals_SOLIDS_OUTSIDE(pal.dark[0], pal.dark[1], pal.dark[2], 3)
   }
 }
@@ -615,8 +812,11 @@ function setMovingBackground() {
 
 function movingBackground() {
   push()
-  let cCoeff = map(mouseY,-h(.5),h(.5),.1,.85)
-  bg1.background(pal.dark[0]*cCoeff, pal.dark[1]*cCoeff, pal.dark[2]*cCoeff, 38)
+  let cCoeff = map(sin(frameCount / 120),-1,1,.1,.85)
+  if (mouseIsPressed) {
+    cCoeff = map(mouseY,-h(.5),h(.5),0,1)
+  }
+  bg1.background(pal.dark[0]*cCoeff, pal.dark[1]*cCoeff, pal.dark[2]*cCoeff, 15)
   for (let i = 0; i < particlesOut.length; i++) {
     particlesOut[i].run()
   }
@@ -663,13 +863,80 @@ class Particle{
   }
 
   show() {
-    bg1.noStroke()
-    //ellipse(this.x+this.off,this.y+this.off,w(.001))
     let c = map(dist(this.x,this.y,0,0),0,bg1_w(.65),.8,.1)
-    let mouseC = map(dist(this.x,this.y,mouseX-width/2,mouseY-height/2),0,bg1_w(.65),map(c,.8,.1,25,80),12)
+    let mouseC = map(dist(this.x,this.y,mouseX-width/2,mouseY-height/2),0,bg1_w(.25),map(c,.8,.1,3,10),0)
     let adjSize = map(dist(this.x,this.y,0,0),0,bg1_w(.65),.5,2.5) * this.size
     blurredEllipse_bg1(this.x,this.y,adjSize,this.col[0]*c+mouseC,this.col[1]*c+mouseC,this.col[2]*c+mouseC,this.alpha) 
+    push()
+    bg1.rotate(-radians(.003)) // new for 7-12.js
+    blurredEllipse_bg1(this.x * 1.3,this.y * 1.3,adjSize,this.col[0]*c+mouseC,this.col[1]*c+mouseC,this.col[2]*c+mouseC,this.alpha) 
+    pop()
   }
+}
+
+function flagDrips(num,left,right,y,r,g,b) {
+  numDrips = num;
+  for (let i = 0; i < numDrips; i++) {
+    let xPos = rnd(left,right);
+    let yPos = y;
+    drips.push(new Drip(xPos, yPos, rnd(w(.02)), r, g, b))
+  }
+}
+
+function drawDrips() {
+  for (let i = 0; i < drips.length; i++) {
+    drips[i].move();
+    drips[i].show();
+		if (drips[i].y > height) {
+			drips.splice(i, 1);
+		}
+  }
+}
+
+class Drip {
+  constructor(x, y, size, r, g, b) {
+    this.x = x;
+    this.y = y;
+    this.size = size;
+		this.final = size/3;
+    this.color = [r, g, b, 60];
+  }
+  move(){
+    this.y+=h(.0005);
+    let t = 0;
+    t += 5
+    this.x += map(sin(frameCount / 90 + rnd(-3,3)),-1,1,-w(.001),w(.001)) //+ rnd(-w(.002),w(.002))
+    this.size*=.995
+    if(this.size>this.final) this.size*=.78;
+  }
+  show(){
+    flag.noStroke();
+    flag.fill(this.color);
+    flag.ellipse(this.x, this.y, this.size, this.size);
+  }
+}
+
+function textureOverFlag() {
+  push()
+  let darkness = 1000
+  if (frameCount < 35) {
+    for (let i = 0; i < darkness; i++) {
+      let angle = rnd(TWO_PI)
+      let radius = rnd(w(.63))
+      let radius2 = rnd(w(.3), w(.63))
+      let x = radius * sin(angle) 
+      let y = radius * cos(angle) * 1.35
+      let x2 = radius2 * sin(angle) 
+      let y2 = radius2 * cos(angle) * 1.35
+      flag.noStroke()
+      flag.fill(10,20,30,map(dist(x,y,0,0),0,w(.65),0,5))
+      flag.ellipse(x,y,map(dist(x,y,0,0),0,w(.65),w(.005),w(.06)))
+      flag.fill(40,10,20,map(dist(x,y,0,0),w(.35),w(.63),0,1))
+      flag.ellipse(x2,y2,map(dist(x,y,0,0),0,w(.65),w(.005),w(.06)))
+      angle += radians(1)
+    }
+  }
+  pop()
 }
 
 // TEXTURE FUNCTIONS
@@ -689,6 +956,23 @@ function tS_original(x1, y1, x2, y2, weight, r, g, b, alpha) {
   }
   pop()
   graphics.noLoop();
+}
+
+function tS_original_flag(x1, y1, x2, y2, weight, r, g, b, alpha) {
+  push()
+  const relWeight = flag.map(weight, 0, width, 1, 40);
+  flag.stroke(r, g, b, alpha)
+  flag.strokeWeight(w(0.001));
+  for (let i = 0; i < relWeight; i++){
+    let theta = rnd(TWO_PI);
+    let nx1 = x1 + 0.15*rnd(weight/2)*flag.cos(theta);
+    let ny1 = y1 + 0.5*rnd(weight/2)*flag.sin(theta);
+    let nx2 = x2 + 0.15*rnd(weight/2)*flag.cos(theta);
+    let ny2 = y2 + 0.5*rnd(weight/2)*flag.sin(theta);
+    flag.line(nx1, ny1, nx2, ny2)
+  }
+  pop()
+  flag.noLoop();
 }
 
 function texturedCircle(init_distort,line_val,size,inc,diff,max_distort,col,grid) {
@@ -884,6 +1168,27 @@ class ParticleWater{
   }
 }
 
+function shimmerPixels() {
+  let rows = 30;
+  let cols = rows;
+  let size = width/rows;
+  let yoff = 0;
+  for (let i = 0; i < rows; i++){
+    let yPos = size*i
+    let xoff = 1000
+    for ( let j = 0; j < cols; j++){
+      let xPos = size*j
+      noStroke()
+      let coeff = map(dist(xPos,yPos,width/2,height/2),0,w(.5),255,0)
+      //fill(coeff,map(sin(frameCount/90*(i+j)),-1,1,0,125))
+      fill(coeff,map(sin(frameCount/60),-1,1,15,65))
+      rect(xPos-width/2,yPos-height/2,size,size)
+      xoff += .01
+    }
+    yoff += .01
+  }
+}
+
 
 ////////////////////////       MOVING TEXTURE       ///////////////////////////////
 
@@ -1020,19 +1325,25 @@ function irregExpandShimmer(radius,noiseVal,grid) {
     //let diff = 1
     let x = radius * diff * cos(a);
     let y = radius * diff * sin(a);
-    if (grid == 'arcGrid' || grid == 'arcLayers') {
+    if (grid === 'arcGrid' || grid === 'arcLayers') {
       y = (radius * diff * sin(a)) * 1.5;
     }
-    if (grid == 'shaftGrid') {
+    if (grid === 'shaftGrid') {
+      diff = map(noise(xoff, yoff, zoff), 0, 1, .3, 3.35);
+      x = radius * diff * cos(a);
       y = (radius * diff * sin(a)) * 2.5;
     }
-    shimmerSize = map(sin(frameCount / 15 + a),-1,1,0,w(.01))
-    ellipse(x, y, shimmerSize);
-    ellipse(x*1.5, y*1.5, shimmerSize);
-    ellipse(x*1.85, y*1.85, shimmerSize);
-    ellipse(x*2.15, y*2.15, shimmerSize);
+    let alphaBase = map(sin(a),-1,1,0,45)
+    // see 7-6.js for previous version of function (without i loop)
+    for (let i = 0; i < 4; i ++) {
+      let alphaVal = sin(map(i,0,4,0,TWO_PI),-1,1,5,45) + alphaBase
+      sizeMult = .65 + .3*i
+      shimmerSize = map(sin(frameCount / 15 + a*i),-1,1,0,w(.01))
+      rings.noStroke()
+      rings.fill(pal.accent_light[0],pal.accent_light[1],pal.accent_light[2],alphaVal)
+      rings.ellipse(x*sizeMult, y*sizeMult, shimmerSize)
+    }
   }
-  
   zoff += 0.0001;
 }
 
@@ -1080,7 +1391,7 @@ class IrregCircle{
   }
 
   update() {
-    if (this.expandType == 'ellipses' || this.expandType == 'ellipses-rose') {
+    if (this.expandType == 'ellipses' || this.expandType == 'ellipses-rose' || this.expandType == 'ellipses-shimmer') {
       this.radius += r_w(.0015)
     }else{
       this.radius += w(.0015)
@@ -1088,7 +1399,7 @@ class IrregCircle{
   }
 
   checkEdges() {
-    if (this.expandType == 'ellipses' || this.expandType == 'ellipses-rose') {
+    if (this.expandType == 'ellipses' || this.expandType == 'ellipses-rose' || this.expandType == 'ellipses-shimmer') {
       if (this.radius > r_w(.63)) {
         this.radius = r_w(.01)
       }
@@ -1164,11 +1475,9 @@ class IrregCircle{
     }
     if (this.expandType === 'ellipses-shimmer'){
       push()
-      rotate(frameCount / 90)
-      //stroke(map(this.radius,0,w(.7),220,0),35)
-      fill(pal.accent_light[0],pal.accent_light[1],pal.accent_light[2],85)
-      //strokeWeight(3) 
-      noStroke()
+      if (this.grid != 'shaftGrid') {
+        rings.rotate(radians(.15))
+      }
       irregExpandShimmer(this.radius,this.noiseVal,this.grid)
       pop()
     }
@@ -1198,8 +1507,8 @@ function setFog() {
   numP_Top = 175;
   for (let i = 0; i < numP_Out; i++){
     let radius = map(i,0,numP,w(.01),w(.3))
-    let colVals = [pal.accent_light[0], pal.accent_light[1], pal.accent_light[2]]
-    p = new ParticleTop(radius,w(.05),colVals,w(.02),.15);
+    let colVals = [pal.dark[0], pal.dark[1], pal.dark[2]]
+    p = new ParticleTop(radius,w(.05),colVals,w(.02),90);
     particlesTop.push(p);
   }
 }
@@ -1258,11 +1567,11 @@ class ParticleTop{
     noStroke()
     fill(255)
     //ellipse(this.x+this.off,this.y+this.off,w(.001))
-    let c = map(dist(this.x,this.y,0,0),0,w(.3),.8,0)
+    let c = map(dist(this.x,this.y,0,0),0,w(.35),.8,0)
     //let mouseC = map(dist(this.x,this.y,mouseX-width/2,mouseY-height/2),0,w(.65),map(c,.8,.1,30,150),15)
     let adjSize = map(dist(this.x,this.y,0,0),0,w(.65),.5,2.5) * this.size
-    fogEllipse(this.x,this.y,adjSize,this.col[0]*c,this.col[1]*c,this.col[2]*c,this.alpha*(2/c)) 
-    fogEllipse(this.x2,this.y2,adjSize,this.col[0]*c,this.col[1]*c,this.col[2]*c,this.alpha*(2/c)) 
+    fogEllipse(this.x,this.y,adjSize,pal.accent_light[0]*c,pal.accent_light[1]*c,pal.accent_light[2]*c,this.alpha*c) 
+    fogEllipse(this.x2,this.y2,adjSize,pal.accent_light[0]*c,pal.accent_light[1]*c,pal.accent_light[2]*c,this.alpha*c) 
   }
 }
 
@@ -1304,8 +1613,9 @@ function circleGridLarge() {
 
 function arcGrid() {
   push()
-  for (let i = 0; i < 65; i++) {
-    let angle = map(i,0,65,PI-radians(7),TWO_PI+radians(7)) + radians(rnd(-3,3))
+  let numMoths = 58
+  for (let i = 0; i < numMoths; i++) {
+    let angle = map(i,0,numMoths,PI-radians(7),TWO_PI+radians(7)) + radians(rnd(-3,3))
     let radius = rnd(w(.23),w(.38))
     let x = radius * cos(angle)
     let y = radius * sin(angle) + h(.25)
@@ -1349,6 +1659,7 @@ function arcLayers() {
 }
 
 function circleLayers() {
+  // SEE 7-2.js for older version of function
   push()
   let num_rows = 13
   let r_inc = w(.06)
@@ -1357,20 +1668,17 @@ function circleLayers() {
     let num_cols = round(map(dist(y,0,0,0), 0, num_rows/2 * r_inc, 11, 0))
     for (let j = 0; j < num_cols; j++) {
       let x = (map(j,0,num_cols,0-num_cols/2*r_inc,num_cols/2*r_inc)+ r_inc/2) * map(num_cols,0,11,2.3,1) + rnd(-w(.02),w(.02))
-      let point = createVector(x + rnd(-w(.015),w(.015)),y + rnd(-h(.015),h(.015)))
+      let point = createVector(x + rnd(-w(.015),w(.015)),y + rnd(-h(.006),h(.006)))
       gridPoints.push(point)
     }  
   }
-  let num_rows_2 = 5
-  let r_inc_2 = w(.125)
-  for (let i = 0; i < num_rows_2; i++) {
-    let y = map(i,0,num_rows_2,-r_inc_2*num_rows_2/2,r_inc_2*num_rows_2/2)
-    let num_cols = round(map(dist(y,0,0,0), 0, num_rows_2/2 * r_inc_2, 4, 0))
-    for (let j = 0; j < num_cols; j++) {
-      let x = (map(j,0,num_cols,0-num_cols/2*r_inc_2,num_cols/2*r_inc_2)+ r_inc_2/2) * map(num_cols,0,4,2.3,1)
-      let point = createVector(x + rnd(-w(.015),w(.015)),y + rnd(-h(.015),h(.015)))
-      gridPoints_LG.push(point)
-    }  
+  for (let i = 0; i < 6; i++) {
+    let radius = rnd(w(.04), w(.17))
+    let angle = map(i,0,6,0,TWO_PI)
+    let x = radius * cos(angle)
+    let y = radius * sin(angle)
+    let point = createVector(x, y)
+    gridPoints_LG.push(point)
   }
   pop()
 }
@@ -1399,7 +1707,6 @@ function mothsSetup(grid) {
     circleGrid()
     mothScale = chooseMothScale()
     for (let i = 0; i < gridPoints.length; i++) {
-      //let sclAdjust = 
       let loc = createVector(gridPoints[i].x,gridPoints[i].y)
       let met = chooseMetal()
       let angle = 0; //any value to initialize
@@ -1417,7 +1724,6 @@ function mothsSetup(grid) {
     circleGridLarge()
     mothScale = chooseMothScale()
     for (let i = 0; i < gridPoints.length; i++) {
-      //let sclAdjust = 
       let randX = rnd(-w(.01),w(.01))
       let randY = rnd(-h(.01),h(.01))
       let loc = createVector(gridPoints[i].x + randX, gridPoints[i].y + randY)
@@ -1436,7 +1742,6 @@ function mothsSetup(grid) {
   if (grid === 'arcGrid'){
     arcGrid()
     for (let i = 0; i < gridPoints.length; i++) {
-      //let sclAdjust = 
       let loc = createVector(gridPoints[i].x,gridPoints[i].y)
       let met = chooseMetal()
       let angle = 0; //any value to initialize
@@ -1517,7 +1822,7 @@ function mothsSetup(grid) {
       let met = chooseMetal()
       let angle = 0; //any value to initialize
       let dir = createVector(cos(angle), sin(angle));
-      let speed = rnd(.1,1);
+      let speed = w(rnd(.0001,.001));
       let start = rnd(50,200)
       let moth = chooseMoth()
       let rot = rnd(-PI,PI)
@@ -1541,11 +1846,6 @@ function setSpiralMoths() {
     let x = radius*cos(angle)*diff
     let y = radius*sin(angle)*diff
 
-    //let gold = [255,231,122]
-    //let platinum = [227, 222, 197]
-    //let silver = [209, 233, 237]
-    //metals = [gold,platinum,silver]
-    //met = metals[floor(rnd()*metals.length)]
     let met = chooseMetal()
 
     let start = rnd(25,125)
@@ -1596,28 +1896,24 @@ function moth_9(x,y,sc,rot,fadeIn,metl) {
   push()
   let x1 = x
   let y1 = y
-  let x2 = x + sc * w(.15) * cos(frameCount / 30)
-  let y2 = y + sc * w(.15) * sin(frameCount / 60)
+  let x2 = x + sc * w(.13) * cos(frameCount / 30 + fadeIn)
+  let y2 = y + sc * w(.13) * sin(frameCount / 30 + fadeIn)
   let c = .9
   let mouseDist = dist(x,y,mouseX-width/2,mouseY-height/2)
   if (mouseDist < w(.2)) {
     c = map(dist(x,y,mouseX-width/2,mouseY-height/2),0,w(.2),.1,1)
   }
-  let gradient = drawingContext.createLinearGradient(x1,y1,x2,y2)
+  let gradient = drawingContext.createRadialGradient(x1,y1,0,x2,y2,sc*w(.35))
   let alpha = map(frameCount,fadeIn,fadeIn+25,0,200)
-  //let c1 = color(250*c, 221*c, 140*c, alpha);
-  //let c2 = color(227*c, 147*c, 77*c, alpha);
-  //let c3 = color(252*c, 235*c, 217*c, alpha);
   let c1 = color(metl.mc1[0]*c, metl.mc1[1]*c, metl.mc1[2]*c, alpha);
   let c2 = color(metl.mc2[0]*c, metl.mc2[1]*c, metl.mc2[2]*c, alpha);
   let c3 = color(metl.mc3[0]*c, metl.mc3[1]*c, metl.mc3[2]*c, alpha);
   gradient.addColorStop(0,   c1.toString());
-  gradient.addColorStop(0.33, c2.toString());
-  gradient.addColorStop(0.66,   c1.toString());
-  gradient.addColorStop(1,   c3.toString());
+  gradient.addColorStop(0.25, c2.toString());
+  gradient.addColorStop(0.5,   c1.toString());
+  gradient.addColorStop(0.75,   c3.toString());
+  gradient.addColorStop(1,   c1.toString());
   drawingContext.fillStyle = gradient;
-  //resetMatrix()
-  //translate(-width/2,-height/2)
   translate(x,y)
   let rotOption = rot
   if (mouseDist < w(.2)) {
@@ -1744,28 +2040,24 @@ function moth_10(x,y,sc,rot,fadeIn,metl) {
   push()
   let x1 = x
   let y1 = y
-  let x2 = x + sc * w(.15) * cos(frameCount / 30)
-  let y2 = y + sc * w(.15) * sin(frameCount / 60)
+  let x2 = x + sc * w(.13) * cos(frameCount / 30 + fadeIn)
+  let y2 = y + sc * w(.13) * sin(frameCount / 30 + fadeIn)
   let c = .9
   let mouseDist = dist(x,y,mouseX-width/2,mouseY-height/2)
   if (mouseDist < w(.2)) {
     c = map(dist(x,y,mouseX-width/2,mouseY-height/2),0,w(.2),.1,1)
   }
-  let gradient = drawingContext.createLinearGradient(x1,y1,x2,y2)
+  let gradient = drawingContext.createRadialGradient(x1,y1,0,x2,y2,sc*w(.35))
   let alpha = map(frameCount,fadeIn,fadeIn+25,0,200)
-  //let c1 = color(219*c, 248*c, 255*c, alpha);
-  //let c2 = color(245*c, 251*c, 252*c, alpha);
-  //let c3 = color(227*c, 242*c, 255*c, alpha);
   let c1 = color(metl.mc1[0]*c, metl.mc1[1]*c, metl.mc1[2]*c, alpha);
   let c2 = color(metl.mc2[0]*c, metl.mc2[1]*c, metl.mc2[2]*c, alpha);
   let c3 = color(metl.mc3[0]*c, metl.mc3[1]*c, metl.mc3[2]*c, alpha);
   gradient.addColorStop(0,   c1.toString());
-  gradient.addColorStop(0.33, c2.toString());
-  gradient.addColorStop(0.66,   c1.toString());
-  gradient.addColorStop(1,   c3.toString());
+  gradient.addColorStop(0.25, c2.toString());
+  gradient.addColorStop(0.5,   c1.toString());
+  gradient.addColorStop(0.75,   c3.toString());
+  gradient.addColorStop(1,   c1.toString());
   drawingContext.fillStyle = gradient;
-  //resetMatrix()
-  //translate(-width/2,-height/2)
   translate(x,y)
   let rotOption = rot
   if (mouseDist < w(.2)) {
@@ -1851,28 +2143,24 @@ function moth_11(x,y,sc,rot,fadeIn,metl) {
   push()
   let x1 = x
   let y1 = y
-  let x2 = x + sc * w(.15) * cos(frameCount / 30)
-  let y2 = y + sc * w(.15) * sin(frameCount / 60)
+  let x2 = x + sc * w(.13) * cos(frameCount / 30 + fadeIn)
+  let y2 = y + sc * w(.13) * sin(frameCount / 30 + fadeIn)
   let c = .9
   let mouseDist = dist(x,y,mouseX-width/2,mouseY-height/2)
   if (mouseDist < w(.2)) {
     c = map(dist(x,y,mouseX-width/2,mouseY-height/2),0,w(.2),.1,1)
   }
-  let gradient = drawingContext.createLinearGradient(x1,y1,x2,y2)
+  let gradient = drawingContext.createRadialGradient(x1,y1,0,x2,y2,sc*w(.35))
   let alpha = map(frameCount,fadeIn,fadeIn+25,0,200)
-  //let c1 = color(252*c, 248*c, 194*c, alpha);
-  //let c2 = color(224*c, 202*c, 150*c, alpha);
-  //let c3 = color(237*c, 237*c, 235*c, alpha);
   let c1 = color(metl.mc1[0]*c, metl.mc1[1]*c, metl.mc1[2]*c, alpha);
   let c2 = color(metl.mc2[0]*c, metl.mc2[1]*c, metl.mc2[2]*c, alpha);
   let c3 = color(metl.mc3[0]*c, metl.mc3[1]*c, metl.mc3[2]*c, alpha);
   gradient.addColorStop(0,   c1.toString());
-  gradient.addColorStop(0.33, c2.toString());
-  gradient.addColorStop(0.66,   c1.toString());
-  gradient.addColorStop(1,   c3.toString());
+  gradient.addColorStop(0.25, c2.toString());
+  gradient.addColorStop(0.5,   c1.toString());
+  gradient.addColorStop(0.75,   c3.toString());
+  gradient.addColorStop(1,   c1.toString());
   drawingContext.fillStyle = gradient;
-  //resetMatrix()
-  //translate(-width/2,-height/2)
   translate(x,y)
   let rotOption = rot
   if (mouseDist < w(.2)) {
@@ -1976,18 +2264,18 @@ function moth_12(x,y,sc,rot,fadeIn,metl) {
   push()
   let x1 = x
   let y1 = y
-  let x2 = x + sc * w(.15) * cos(frameCount / 30)
-  let y2 = y + sc * w(.15) * sin(frameCount / 60)
+  let x2 = x + sc * w(.13) * cos(frameCount / 30 + fadeIn)
+  let y2 = y + sc * w(.13) * sin(frameCount / 30 + fadeIn)
   let c = .9
   let mouseDist = dist(x,y,mouseX-width/2,mouseY-height/2)
   if (mouseDist < w(.2)) {
     c = map(dist(x,y,mouseX-width/2,mouseY-height/2),0,w(.2),.1,1)
   }
-  let gradient = drawingContext.createLinearGradient(x1,y1,x2,y2)
+  let gradient = drawingContext.createRadialGradient(x1,y1,0,x2,y2,sc*w(.35))
   let alpha = map(frameCount,fadeIn,fadeIn+25,0,200)
-  //let c1 = color(250*c, 221*c, 140*c, alpha);
-  //let c2 = color(227*c, 147*c, 77*c, alpha);
-  //let c3 = color(252*c, 235*c, 217*c, alpha);
+  if (dist(x,y,0,0) < w(.06)) {
+    alpha = map(dist(x,y,0,0),w(.06),w(.045),200,0)
+  }
   let c1 = color(metl.mc1[0]*c, metl.mc1[1]*c, metl.mc1[2]*c, alpha);
   let c2 = color(metl.mc2[0]*c, metl.mc2[1]*c, metl.mc2[2]*c, alpha);
   let c3 = color(metl.mc3[0]*c, metl.mc3[1]*c, metl.mc3[2]*c, alpha);
@@ -1996,8 +2284,7 @@ function moth_12(x,y,sc,rot,fadeIn,metl) {
   gradient.addColorStop(0.66,   c1.toString());
   gradient.addColorStop(1,   c3.toString());
   drawingContext.fillStyle = gradient;
-  //resetMatrix()
-  //translate(-width/2,-height/2)
+  //rotate(radians(frameCount * .01))
   translate(x,y)
   let rotOption = rot
   if (mouseDist < w(.2)) {
@@ -2110,9 +2397,10 @@ function crescent(sc,fadeIn,metl) {
   let c2 = color(metl.mc2[0]*c, metl.mc2[1]*c, metl.mc2[2]*c, alpha);
   let c3 = color(metl.mc3[0]*c, metl.mc3[1]*c, metl.mc3[2]*c, alpha);
   gradient.addColorStop(0,   c1.toString());
-  gradient.addColorStop(0.33, c2.toString());
-  gradient.addColorStop(0.66,   c1.toString());
-  gradient.addColorStop(1,   c3.toString());
+  gradient.addColorStop(0.25, c2.toString());
+  gradient.addColorStop(0.5,   c1.toString());
+  gradient.addColorStop(0.75,   c3.toString());
+  gradient.addColorStop(1,   c1.toString());
   drawingContext.fillStyle = gradient;
 
   let coords_tr = [
@@ -2179,27 +2467,19 @@ class Buttermoth{
     let angle = frameCount / 5
     this.dir.x = cos(angle);
     this.dir.y = sin(angle);
-    var vel = this.dir.copy();
-    var d = .5;  //direction change 
-    vel.mult(this.speed*d); //vel = vel * (speed*d)
-    this.loc.add(vel); //loc = loc + vel
+    //var vel = this.dir.copy();
+    //var d = .5;  //direction change 
+    //vel.mult(this.speed*d); //vel = vel * (speed*d)
+    //this.loc.add(vel); //loc = loc + vel
     if (this.grid == 'shaftGrid'){
       angle = frameCount/ 90 + this.angleOffset * this.speed
-      this.dir.x = cos(angle)*.3;
-      this.dir.y = -noise(angle)*5;
+      this.dir.x = cos(angle)*w(.0007);
+      this.dir.y = -noise(angle)*w(.0025);
       var vel = this.dir.copy();
-      //var d = 1;  //direction change 
-      //vel.mult(this.speed*d); //vel = vel * (speed*d)
       this.loc.add(vel); //loc = loc + vel
     }
     if (this.grid == 'circleGrid' || this.grid == 'circleLayers') {
       let angle = frameCount / 90
-      //this.dir.x = cos(angle);
-      //this.dir.y = sin(angle);
-      //var vel = this.dir.copy();
-      //var d = .5;  //direction change 
-      //vel.mult(this.speed*d); //vel = vel * (speed*d)
-      //this.loc.add(vel); //loc = loc + vel
       let radius = dist(0,0,this.loc.x,this.loc.y)
       this.loc.x = radius * cos(angle+radians(this.start*2))
       this.loc.y = radius * sin(angle+radians(this.start*2))
@@ -2271,7 +2551,7 @@ class Buttermoth_Spiral{
 
   update() {
     let t = 0
-    let relSpeed = this.speedCoeff * map(dist(this.x,this.y,0,0),w(.8),0,.1,2)
+    let relSpeed = this.speedCoeff * map(dist(this.x,this.y,0,0),w(.8),0,.1,6)
     t += .5 * relSpeed
     let tr = 0
     rotate(radians(frameCount * .01))
@@ -2281,10 +2561,9 @@ class Buttermoth_Spiral{
   }
 
   checkEdges() {
-    if (dist(this.x,this.y,0,0) < w(.045)) {
+    if (dist(this.x,this.y,0,0) < w(.01)) {
       this.start = frameCount
       let newRadius = rnd(w(.25),w(.75))
-      //let newAngle = frameCount / 90
       this.x = newRadius*cos(this.angle)
       this.y = newRadius*sin(this.angle)
     }
@@ -2293,9 +2572,8 @@ class Buttermoth_Spiral{
   show(fM_xoff,fM_yoff) {
 
     let c = map(noise(fM_xoff, fM_yoff), 0, 1, 0, map(dist(this.x,this.y,mouseX-width/2,mouseY-height/2),w(.05),w(.2),0,.3));
-    fill(c * this.met[0],c * this.met[1],c * this.met[2], map(dist(this.x,this.y,0,0),w(.045),w(.023),255,0))
+    fill(c * this.met[0],c * this.met[1],c * this.met[2], 1)
     noStroke()
-    //background(0,1.3)
-    this.moth(this.x, this.y, this.mothScale * map(dist(this.x,this.y,0,0),w(.8),0,1.3,.45), map(sin(frameCount/60),-1,1,0,this.rot),this.start,this.met);
+    this.moth(this.x, this.y, this.mothScale * map(dist(this.x,this.y,0,0),w(.8),0,1.3,.25), map(sin(frameCount/60),-1,1,0,this.rot),this.start,this.met);
   }
 }
